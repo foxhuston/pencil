@@ -15,14 +15,24 @@ class Player(server: ServerHandle, room: ActorRef) extends Actor {
 	val socket = server.accept()
 	var Room = room
 	
-	room ! Description
+	room ! Enter
   
 	def receive = {
 	  case IO.Read(readHandle, byteString) =>
 	    readHandle.asSocket write byteString.compact
-	  case IO.Close(s) =>
+	  case IO.Closed(s, cause) =>
+	    Console.println(nick + " quit")
+	    room ! Leave
 	    context.stop(self)
 	  case Write(s) =>
-	    socket write ByteString(s + "\r\n")
+	    socket write ByteString(s + "\r\n> ")
+	  case JoinMessage(player) =>
+	    player ! SendMeAJoinMessage
+	  case SendMeAJoinMessage =>
+	    context.sender ! Write(nick + " joined the room.")
+	  case LeaveMessage(player) =>
+	    player ! SendMeALeaveMessage
+	  case SendMeALeaveMessage =>
+	    context.sender ! Write(nick + " left the room.")
 	}
 }
