@@ -29,6 +29,8 @@ class Room(var name: String) extends Actor {
       Inhabitants += context.sender
     case Leave =>
       Leave(context.sender)
+    case Say(who, what) =>
+      for(p <- Inhabitants) p ! Write(who + ": " + what)
     case Description =>
       context.sender ! Write(description)
     case SetDescription(newDescription) =>
@@ -55,8 +57,7 @@ class Room(var name: String) extends Actor {
       	    + " (" + Inhabitants.count(_ => true) + ")\r\n"
       	    + "Exits: "
       	    + exits.map(_._1).mkString(",")
-      	    + "\r\n\r\n"
-      	    + description
-      	    + "\r\n")
+      	    + "\r\n"
+      	    + description)
   }
 }

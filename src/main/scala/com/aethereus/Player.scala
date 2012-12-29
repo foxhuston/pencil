@@ -21,18 +21,25 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	var tmpDescription = ""
 	var tmpDirection = ""
 	
-	room ! Enter
+	self ! Write("Your name?")
 	
-	Write("Your name?")
+	val create = "(c|create)$".r
+	val whoAmI = "(w|whoami)$".r
+	val look = "(l|d|look|description)".r
+	val say = "^'(.*)".r
+	val shout = "^\"".r
 	
 	def parseBehavior(input: String) = {
-      Console.println("Parsing behavior")
 	  input match {
-	    case "create" =>
+	    case say(input) =>
+	      room ! Say(nick, input)
+	    case create() =>
 	      self ! Write("What direction are you traveling?")
 	      parseState = "RoomParser"
-	    case "d" =>
+	    case look() =>
 	      room ! EnterMessage
+	    case whoAmI() =>
+	      self ! Write("You are " + nick)
 	    case _ =>
 	   	  room ! LeaveBy(input)   
 	  }
@@ -40,6 +47,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
     
     def parseGetNick(input: String) = {
       nick = input
+      room ! Enter
       parseState = ""
     }
 	
@@ -86,7 +94,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	      parseBehavior(input)
 
 	  case IO.Closed(s, cause) =>
-	    Console.println(nick + " quit")
 	    room ! Leave
 	    context.stop(self)
 	  case Write(s) =>
@@ -100,7 +107,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	  case SendMeALeaveMessage =>
 	    context.sender ! Write(nick + " left the room.")
 	  case LeaveOk(r) =>
-	    Console.println(r)
 	    val (d, roomName) = r
 	    Console.println("Room's Name: " + roomName)
 	    currentRoomName = roomName

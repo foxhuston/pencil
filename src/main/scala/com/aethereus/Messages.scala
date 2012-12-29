@@ -17,6 +17,8 @@ case class LeaveBy(direction: String)
 case class LeaveOk(exit: (String, String))
 case class LeaveFail
 
+case class Say(nick: String, input: String)
+
 case class Description
 case class SetDescription(description: String)
 
