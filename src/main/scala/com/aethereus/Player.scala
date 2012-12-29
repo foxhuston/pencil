@@ -16,12 +16,14 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	val socket = server.accept()
 	val roomService = context.actorFor("../RoomService")
 	
-	var parseState = ""
+	var parseState = "Get Nick"
 	var roomParseState = ""
 	var tmpDescription = ""
 	var tmpDirection = ""
 	
 	room ! Enter
+	
+	Write("Your name?")
 	
 	def parseBehavior(input: String) = {
       Console.println("Parsing behavior")
@@ -35,6 +37,11 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	   	  room ! LeaveBy(input)   
 	  }
 	}
+    
+    def parseGetNick(input: String) = {
+      nick = input
+      parseState = ""
+    }
 	
 	def roomParser(input: String) = {
 	  roomParseState match {
@@ -73,6 +80,8 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	    val input = byteString.utf8String.trim()
 	    if(parseState == "RoomParser")
 	    	roomParser(input)
+	    else if(parseState == "Get Nick")
+	    	parseGetNick(input)
 	    else
 	      parseBehavior(input)
 
