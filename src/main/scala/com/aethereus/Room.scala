@@ -5,16 +5,22 @@ import akka.actor._
 class RoomService extends Actor {
   def receive = {
     case NewRoom(name) =>
+      Console.println("Creating " + name)
       context.actorOf(Props(new Room(name)), name = name)
   }
 } 
 
 class Room(var name: String) extends Actor {
   var description = ""
-  var exits = Set()
+  var exits: Set[(String, String)] = Set()
   var Inhabitants: Set[ActorRef] = Set()
   
   Console.println(context.self.path)
+  
+  def Leave(sender: ActorRef) = {
+    Inhabitants -= sender
+    for(p <- Inhabitants) p ! LeaveMessage(sender)
+  }
   
   def receive = {
     case Enter =>
@@ -22,14 +28,25 @@ class Room(var name: String) extends Actor {
       writeEnterMessage(context.sender)
       Inhabitants += context.sender
     case Leave =>
-      Inhabitants -= context.sender
-      for(p <- Inhabitants) p ! LeaveMessage(context.sender)
+      Leave(context.sender)
     case Description =>
       context.sender ! Write(description)
     case SetDescription(newDescription) =>
       description = newDescription
     case EnterMessage =>
       writeEnterMessage(context.sender)
+    case Exits =>
+      context.sender ! ExitMessage(exits)
+    case AddExit(exit) =>
+      exits += exit
+    case LeaveBy(direction) =>
+      exits.find(_._1 == direction) match {
+        case Some(t) =>
+          Leave(context.sender)
+          context.sender ! LeaveOk(t)
+        case None =>
+          context.sender ! LeaveFail
+      }
   }
   
   def writeEnterMessage(sender: ActorRef) = {
@@ -37,6 +54,7 @@ class Room(var name: String) extends Actor {
       	Write(name
       	    + " (" + Inhabitants.count(_ => true) + ")\r\n"
       	    + "Exits: "
+      	    + exits.map(_._1).mkString(",")
       	    + "\r\n\r\n"
       	    + description
       	    + "\r\n")
