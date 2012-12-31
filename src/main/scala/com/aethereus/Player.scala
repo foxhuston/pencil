@@ -10,6 +10,14 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	var nick = ""
 	var hp = 10
 	var mp = 10
+	
+	var strength = 10
+	var dexterity = 10
+	var intelligence = 10
+	
+	var armor = 10
+	var speed = 10
+	
 	var description = ""
 	var race = ""
 	
@@ -114,5 +122,14 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	    room ! Enter
 	  case LeaveFail =>
 	    self ! Write("You can't go that way")
+	    
+	  case ReportHit(who, damage) =>
+	    self ! Write("You hit " + who + " for " + damage + " damage")
+	  case ReportMiss(who) =>
+	    self ! Write("You missed " + who)
+	    
+	  case Attack(who, what, roll) =>
+	    self ! Write(who + " is attacking!")
+	    
 	}
 }

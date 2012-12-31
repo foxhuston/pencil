@@ -19,6 +19,10 @@ case class LeaveFail
 
 case class Say(nick: String, input: String)
 
+case class Attack(nick: String, what: String, roll: Int)
+case class ReportHit(who: String, damage: Int)
+case class ReportMiss(who: String)
+
 case class Description
 case class SetDescription(description: String)
 
