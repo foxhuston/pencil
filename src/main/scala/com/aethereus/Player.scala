@@ -7,19 +7,12 @@ import akka.pattern.ask
 
 import util.Random
 
-class Player(server: ServerHandle, var room: ActorRef) extends Actor {
+class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fightable with Inventory {
     var currentRoomName = "Start" //ToDo: Figure out better way to initialize this
 	var nick = ""
-	var hp = 10
-	var mp = 10
 	
-	var strength = 10
-	var dexterity = 10
-	var intelligence = 10
-	
-	var armor = 10
-	var speed = 10
-	
+	addToInventory(WoodenSword)
+	  
 	var description = ""
 	var race = ""
 	
@@ -32,6 +25,8 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	var roomParseState = ""
 	var tmpDescription = ""
 	var tmpDirection = ""
+	  
+	var lastAttacked = ("", "")
 	
 	self ! Write("Your name?")
 	
@@ -40,7 +35,10 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	val look = "(l|d|look|description)".r
 	val say = "^'(.*)".r
 	val shout = "^\"".r
-	val testAttack = "^attack[ ]+(.*)".r
+	val testAttack = "^attack[ ]+(.*)$".r
+	val testAttackShort = "^a$".r
+	val equip = "^(e|equip)[ ]+(.*)$".r
+	val matchInventory = "^(i|inventory)$".r
 	
 	def roll() = {
       random.nextInt(20) + 1;
@@ -57,8 +55,16 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	      room ! EnterMessage
 	    case whoAmI(_) =>
 	      self ! Write("You are " + nick)
+	    case testAttackShort() =>
+	      val (w, h) = lastAttacked
+	      room ! Attack(nick, w, h, roll())
 	    case testAttack(what) =>
-	      room ! Attack(nick, what, roll())
+	      lastAttacked = (what, "str")
+	      room ! Attack(nick, what, "str", roll())
+	    case equip(_, what) =>
+	      equipItem(what)
+	    case matchInventory(_) =>
+	      self ! Write(printInventory())
 	    case _ =>
 	   	  room ! LeaveBy(input)   
 	  }
@@ -139,9 +145,10 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	  case ReportMiss(who) =>
 	    self ! Write("You missed " + who)
 	    
-	  case Attack(who, what, roll) =>
+	  case Attack(who, what, how, roll) =>
 	    if(nick == what) {
-		    self ! Write(who + " is attacking! (" + roll + ")")
+	      self ! Write(who + " is attacking! (" + roll + ", " + how + ")")
+	      self ! Write(processAttack(how, roll))
 	    }
 	    
 	}
