@@ -39,13 +39,16 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val testAttackShort = "^a$".r
 	val equip = "^(e|equip)[ ]+(.*)$".r
 	val matchInventory = "^(i|inventory)$".r
+	val debugSpawn = "^(s|spawn)[ ]+(.*)".r
 	
 	def roll() = {
       random.nextInt(20) + 1;
     }
 	
-	def parseBehavior(input: String) = {
-	  input match {
+    def parseBehavior(input: String) = 
+      (parseBehaviorA orElse parseDebugBehavior orElse parseTravel(input))(input)
+    
+	val parseBehaviorA: PartialFunction[String, Unit] = {
 	    case say(input) =>
 	      room ! Say(nick, input)
 	    case create(_) =>
@@ -65,9 +68,16 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	      equipItem(what)
 	    case matchInventory(_) =>
 	      self ! Write(printInventory())
-	    case _ =>
-	   	  room ! LeaveBy(input)   
-	  }
+	}
+	
+	val parseDebugBehavior: PartialFunction[String, Unit] = {
+	  case debugSpawn(_, "gremlin") =>
+	    context.actorOf(Props(new Gremlin(room)))
+	}
+	
+	def parseTravel(input: String): PartialFunction[String, Unit] = {
+  	    case _ =>
+	   	  room ! LeaveBy(input)
 	}
     
     def parseGetNick(input: String) = {
