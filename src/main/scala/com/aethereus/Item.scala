@@ -1,5 +1,7 @@
 package com.aethereus
 
+import scala.util.Random
+
 abstract class Item {
 	var equipped = false
 	val name: String
@@ -15,7 +17,8 @@ abstract class Item {
 	val armorBonus: Int
 	val speedBonus: Int
 	
-	val maxDamage: Int
+	val maxDamageOffset: Int
+	val minDamage: Int
 }
 
 object WoodenSword extends Item {
@@ -33,12 +36,15 @@ object WoodenSword extends Item {
       val armorBonus = 0
       val speedBonus = 0
       
-      val maxDamage = 2
+      val maxDamageOffset = 2
+      val minDamage = 1
 }
 
 trait Inventory {
   var inventory: List[(Item, Int)] = List()
   var equipped: List[Item] = List()
+  
+  val inventoryRandom = new Random()
   
   def printInventory(): String = {
     var inventoryString = ""
@@ -58,6 +64,15 @@ trait Inventory {
       case None =>
         inventory ::= (newItem, 1) 
     }
+  }
+  
+  def damageRoll(): Int = {
+    if(equipped.length < 1) return 0
+    
+    // TODO: Make this not wrong.
+    val maxDamage = equipped.map(item => item.maxDamageOffset).max
+    val minDamage = equipped.map(item => item.minDamage).max
+    return inventoryRandom.nextInt(maxDamage) + minDamage
   }
   
   def getSpeedBonuses(): Int = {

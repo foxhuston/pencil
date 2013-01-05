@@ -7,9 +7,9 @@ abstract trait Fightable {
 	var hp = 10
 	var mp = 10
 	
-	var strength = 10
-	var dexterity = 10
-	var intelligence = 10
+	var strength = 12
+	var dexterity = 12
+	var intelligence = 12
 	
 	var armor = 10
 	var speed = 10
@@ -20,10 +20,17 @@ abstract trait Fightable {
 	def getArmorBonuses(): Int
 	def getSpeedBonuses(): Int
 	
-	def processAttack(how: String, roll: Int): String = {
+	def processAttack(how: String, roll: Int, attackRoll: Int): (String, Boolean) = {
 	  how match {
 	        case "str" =>
-	        	return "Test" + strength + ", " + getStrengthBonuses()
+	        	if(roll > strength + getStrengthBonuses()) {
+	        	  hp -= attackRoll
+	        	  if(hp < 0) {
+	        	    return ("You died", false)
+	        	  }
+	        	  return ("You were hit for " + attackRoll + " hp!", true)
+	        	}
+	        	return ("The attack missed!", true)
 	      }
 	}
 }

@@ -57,10 +57,10 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	      self ! Write("You are " + nick)
 	    case testAttackShort() =>
 	      val (w, h) = lastAttacked
-	      room ! Attack(nick, w, h, roll())
+	      room ! Attack(nick, w, h, roll(), damageRoll())
 	    case testAttack(what) =>
 	      lastAttacked = (what, "str")
-	      room ! Attack(nick, what, "str", roll())
+	      room ! Attack(nick, what, "str", roll(), damageRoll())
 	    case equip(_, what) =>
 	      equipItem(what)
 	    case matchInventory(_) =>
@@ -123,7 +123,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	    room ! Leave
 	    context.stop(self)
 	  case Write(s) =>
-	    socket write ByteString(s + "\r\n> ")
+	    socket write ByteString(s + "\r\n[" + hp + "]> ")
 	  case JoinMessage(player) =>
 	    player ! SendMeAJoinMessage
 	  case SendMeAJoinMessage =>
@@ -145,10 +145,20 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	  case ReportMiss(who) =>
 	    self ! Write("You missed " + who)
 	    
-	  case Attack(who, what, how, roll) =>
+	  case Attack(who, what, how, roll, damageRoll) =>
 	    if(nick == what) {
 	      self ! Write(who + " is attacking! (" + roll + ", " + how + ")")
-	      self ! Write(processAttack(how, roll))
+	      val (message, alive) = processAttack(how, roll, damageRoll)
+	      self ! Write(message)
+	      if(!alive)
+	      {
+	        hp = 10
+	        room ! Leave
+	        room = context.actorFor("../RoomService/Start")
+	        room ! Enter
+	      }
+	    } else {
+	      self ! Write(who + " is attacking " + what + "!")
 	    }
 	    
 	}

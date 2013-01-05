@@ -41,8 +41,8 @@ class Room(var name: String) extends Actor {
       context.sender ! ExitMessage(exits)
     case AddExit(exit) =>
       exits += exit
-    case Attack(who, what, how, roll) =>
-      for(p <- Inhabitants) p ! Attack(who, what, how, roll)
+    case Attack(who, what, how, roll, attackRoll) =>
+      for(p <- Inhabitants) p ! Attack(who, what, how, roll, attackRoll)
     case LeaveBy(direction) =>
       exits.find(_._1 == direction) match {
         case Some(t) =>
