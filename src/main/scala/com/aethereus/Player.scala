@@ -5,6 +5,8 @@ import akka.util.ByteString
 import akka.actor.IO._
 import akka.pattern.ask
 
+import util.Random
+
 class Player(server: ServerHandle, var room: ActorRef) extends Actor {
     var currentRoomName = "Start" //ToDo: Figure out better way to initialize this
 	var nick = ""
@@ -24,6 +26,8 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	val socket = server.accept()
 	val roomService = context.actorFor("../RoomService")
 	
+	val random = new Random()
+	
 	var parseState = "Get Nick"
 	var roomParseState = ""
 	var tmpDescription = ""
@@ -36,18 +40,25 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	val look = "(l|d|look|description)".r
 	val say = "^'(.*)".r
 	val shout = "^\"".r
+	val testAttack = "^attack[ ]+(.*)".r
+	
+	def roll() = {
+      random.nextInt(20) + 1;
+    }
 	
 	def parseBehavior(input: String) = {
 	  input match {
 	    case say(input) =>
 	      room ! Say(nick, input)
-	    case create() =>
+	    case create(_) =>
 	      self ! Write("What direction are you traveling?")
 	      parseState = "RoomParser"
-	    case look() =>
+	    case look(_) =>
 	      room ! EnterMessage
-	    case whoAmI() =>
+	    case whoAmI(_) =>
 	      self ! Write("You are " + nick)
+	    case testAttack(what) =>
+	      room ! Attack(nick, what, roll())
 	    case _ =>
 	   	  room ! LeaveBy(input)   
 	  }
@@ -55,6 +66,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
     
     def parseGetNick(input: String) = {
       nick = input
+      
       room ! Enter
       parseState = ""
     }
@@ -116,7 +128,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	    context.sender ! Write(nick + " left the room.")
 	  case LeaveOk(r) =>
 	    val (d, roomName) = r
-	    Console.println("Room's Name: " + roomName)
 	    currentRoomName = roomName
 	    room = context.actorFor("../RoomService/" + roomName)
 	    room ! Enter
@@ -129,7 +140,9 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor {
 	    self ! Write("You missed " + who)
 	    
 	  case Attack(who, what, roll) =>
-	    self ! Write(who + " is attacking!")
+	    if(nick == what) {
+		    self ! Write(who + " is attacking! (" + roll + ")")
+	    }
 	    
 	}
 }
