@@ -44,13 +44,11 @@ class Gremlin(sroom: ActorRef) extends Npc(sroom) {
   
   override val npcSpecificActions: PartialFunction[Any, Unit] = {
     case RandomRoomInhabitantResponse(actor) =>
-      Console.println("Found ${actor}")
       attacking = actor
       attacking ! GetNick
     case GetNickResponse(nick) =>
       attackingNick = nick
     case "tick" =>
-      Console.println("Tick!")
       if(attackingNick != "") {
         room ! Attack(name, attackingNick, "str", roll(), damageRoll())
       }

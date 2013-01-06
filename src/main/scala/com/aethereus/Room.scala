@@ -11,6 +11,9 @@ class RoomService extends Actor {
   }
 } 
 
+//Note: Want nouns up in here:
+// You are in a kitchen. There is a [sink (screwdriver)] here.
+
 class Room(var name: String) extends Actor {
   var description = ""
   var exits: Set[(String, String)] = Set()
@@ -60,8 +63,9 @@ class Room(var name: String) extends Actor {
   
   val partB: PartialFunction[Any, Unit] = {
     case RandomRoomInhabitant =>
-      val x = random.nextInt(Inhabitants.count(_ => true))
-      val ref = Inhabitants.drop(x).head
+      val inh = Inhabitants - context.sender
+      val x = random.nextInt(inh.count(_ => true))
+      val ref = inh.drop(x).head
       context.sender ! RandomRoomInhabitantResponse(ref)
   }
   

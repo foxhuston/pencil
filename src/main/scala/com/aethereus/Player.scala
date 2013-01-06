@@ -10,6 +10,8 @@ import util.Random
 class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fightable with Inventory {
     var currentRoomName = "Start" //ToDo: Figure out better way to initialize this
 	var nick = ""
+	  
+	val lives = 10
 	
 	addToInventory(WoodenSword)
 	  
@@ -28,14 +30,28 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	
 	self ! Write("Your name?")
 	
+	
+	// Pass verbs -> room -> room objects
 	val create = "(c|create)$".r
-	val whoAmI = "(w|whoami)$".r
-	val look = "(l|d|look|description)".r
-	val say = "^'(.*)".r
+	val whoAmI = "(whoami)$".r
+	val look = "(l|look|description)".r
+	val say = "^('|say[ ]+)(.*)".r
+	val get = "^get(.*)".r
+    val give = "^drop".r
+    val drop = ""
+    val take = ""
+    val put = ""
+    val tell = ""
+    val alias = ""
+    val unequip = "(lower|unequip|remove)(.*)".r
+    val open = ""
+    val close = ""
+    val quit = ""
+    val stats = "(score|stats)"
 	val shout = "^\"".r
-	val testAttack = "^attack[ ]+(.*)$".r
+	val testAttack = "^kill[ ]+(.*)$".r
 	val testAttackShort = "^a$".r
-	val equip = "^(e|equip)[ ]+(.*)$".r
+	val equip = "^(equip|wear|wield)[ ]+(.*)$".r
 	val matchInventory = "^(i|inventory)$".r
 	val debugSpawn = "^(s|spawn)[ ]+(.*)".r
 	
@@ -43,7 +59,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
       (parseBehaviorA orElse parseDebugBehavior orElse parseTravel(input))(input)
     
 	val parseBehaviorA: PartialFunction[String, Unit] = {
-	    case say(input) =>
+	    case say(_, input) =>
 	      room ! Say(nick, input)
 	    case create(_) =>
 	      self ! Write("What direction are you traveling?")
