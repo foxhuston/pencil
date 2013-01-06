@@ -1,5 +1,7 @@
 package com.aethereus
 
+import scala.util.Random
+
 abstract trait Fightable {
 	var exp = 0
 	var level = 1
@@ -19,6 +21,13 @@ abstract trait Fightable {
 	def getIntelligenceBonuses(): Int
 	def getArmorBonuses(): Int
 	def getSpeedBonuses(): Int
+	
+	val fightableRandom = new Random()
+
+	
+	def roll() = {
+      fightableRandom.nextInt(20) + 1;
+    }
 	
 	def processAttack(how: String, roll: Int, attackRoll: Int): (String, Boolean) = {
 	  how match {

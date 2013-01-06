@@ -1,6 +1,7 @@
 package com.aethereus
 
 import akka.actor._
+import scala.util.Random
 
 class RoomService extends Actor {
   def receive = {
@@ -15,6 +16,8 @@ class Room(var name: String) extends Actor {
   var exits: Set[(String, String)] = Set()
   var Inhabitants: Set[ActorRef] = Set()
   
+  val random = new Random()
+  
   Console.println(context.self.path)
   
   def Leave(sender: ActorRef) = {
@@ -22,7 +25,9 @@ class Room(var name: String) extends Actor {
     for(p <- Inhabitants) p ! LeaveMessage(sender)
   }
   
-  def receive = {
+  def receive = partA orElse partB
+  
+  val partA: PartialFunction[Any, Unit] = {
     case Enter =>
       for(p <- Inhabitants) p ! JoinMessage(context.sender) 
       writeEnterMessage(context.sender)
@@ -51,6 +56,13 @@ class Room(var name: String) extends Actor {
         case None =>
           context.sender ! LeaveFail
       }
+  }
+  
+  val partB: PartialFunction[Any, Unit] = {
+    case RandomRoomInhabitant =>
+      val x = random.nextInt(Inhabitants.count(_ => true))
+      val ref = Inhabitants.drop(x).head
+      context.sender ! RandomRoomInhabitantResponse(ref)
   }
   
   def writeEnterMessage(sender: ActorRef) = {

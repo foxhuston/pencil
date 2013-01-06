@@ -19,8 +19,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val socket = server.accept()
 	val roomService = context.actorFor("../RoomService")
 	
-	val random = new Random()
-	
 	var parseState = "Get Nick"
 	var roomParseState = ""
 	var tmpDescription = ""
@@ -40,10 +38,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val equip = "^(e|equip)[ ]+(.*)$".r
 	val matchInventory = "^(i|inventory)$".r
 	val debugSpawn = "^(s|spawn)[ ]+(.*)".r
-	
-	def roll() = {
-      random.nextInt(20) + 1;
-    }
 	
     def parseBehavior(input: String) = 
       (parseBehaviorA orElse parseDebugBehavior orElse parseTravel(input))(input)
@@ -170,6 +164,9 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	    } else {
 	      self ! Write(who + " is attacking " + what + "!")
 	    }
+	    
+	  case GetNick =>
+	    context.sender ! GetNickResponse(nick)
 	    
 	}
 }

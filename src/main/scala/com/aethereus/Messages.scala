@@ -6,16 +6,22 @@ case class Write(message: String)
 case class Read(message: String)
 
 case class JoinMessage(player: ActorRef)
-case class SendMeAJoinMessage
+case object SendMeAJoinMessage
 
 case class LeaveMessage(player: ActorRef)
-case class SendMeALeaveMessage
+case object SendMeALeaveMessage
 
-case class Enter
-case class Leave
+case object Enter
+case object Leave
 case class LeaveBy(direction: String)
 case class LeaveOk(exit: (String, String))
-case class LeaveFail
+case object LeaveFail
+
+case object RandomRoomInhabitant
+case class RandomRoomInhabitantResponse(actor: ActorRef)
+
+case object GetNick
+case class GetNickResponse(nick: String)
 
 case class Say(nick: String, input: String)
 
@@ -23,13 +29,13 @@ case class Attack(nick: String, what: String, how: String, roll: Int, attackRoll
 case class ReportHit(who: String, damage: Int)
 case class ReportMiss(who: String)
 
-case class Description
+case object Description
 case class SetDescription(description: String)
 
-case class Exits
+case object Exits
 case class ExitMessage(exits: Set[(String, String)])
 case class AddExit(exit: (String, String))
 
-case class EnterMessage
+case object EnterMessage
 
 case class NewRoom(name: String)

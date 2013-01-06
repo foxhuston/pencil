@@ -67,7 +67,7 @@ trait Inventory {
   }
   
   def damageRoll(): Int = {
-    if(equipped.length < 1) return 0
+    if(equipped.length < 1) return 1 //Your fists do one damage
     
     // TODO: Make this not wrong.
     val maxDamage = equipped.map(item => item.maxDamageOffset).max

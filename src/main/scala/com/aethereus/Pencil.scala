@@ -2,7 +2,6 @@ package com.aethereus
 
 import akka.actor._
 import akka.pattern.ask
-import akka.util.duration._
 import akka.util.Timeout
 import java.net.InetSocketAddress
 import akka.util.ByteString
