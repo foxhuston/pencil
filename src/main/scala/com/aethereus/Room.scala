@@ -15,7 +15,7 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
   Console.println("Getting Index")
 
   // The default getter thingy from neo4j-scala doesn't seem to work
-  //val roomIndex = ds.gds.index.forNodes("RoomIndex");
+  val roomIndex = ds.gds.index.forNodes("RoomIndex");
 
   Console.println("Finding loaded nodes")
   
@@ -64,8 +64,9 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
 		    roomNode("type") = "Room"
 		    roomNode("name") = name
 		    roomNode("description") = description
-		    //roomIndex += (roomNode, "name", name)
+		    roomIndex += (roomNode, "name", name)
 		    context.actorOf(Props(new Room(name, description, roomNode)), name = name)
+		    context.sender ! RoomCreated(name)
 		  }
 	  }
   }
@@ -90,6 +91,7 @@ class Room(var name: String, var description: String, val roomNode: Node) extend
   val random = new Random()
   
   def uri = new URI("http://localhost:7474/db/data/")
+  val roomIndex = ds.gds.index.forNodes("RoomIndex");
   
   Console.println(context.self.path)
   
@@ -121,8 +123,18 @@ class Room(var name: String, var description: String, val roomNode: Node) extend
       writeEnterMessage(context.sender)
     case Exits =>
       context.sender ! ExitMessage(exits)
-    case AddExit(exit) =>
-      exits += exit
+    case AddExit((direction, nameTo)) =>
+      exits += ((direction, nameTo))
+      withTx {
+        implicit neo =>
+          val nodeTo = roomIndex.get("name", nameTo).getSingle()
+          if(nodeTo != null) {
+	          val relation:Relationship = roomNode --> "EXITS_TO" --> nodeTo <
+	          val _ = relation.setProperty("direction", direction)
+          } else {
+            Console.println("Epic faliure")
+          }
+      }
     case Attack(who, what, how, roll, attackRoll) =>
       for(p <- Inhabitants) p ! Attack(who, what, how, roll, attackRoll)
     case LeaveBy(direction) =>

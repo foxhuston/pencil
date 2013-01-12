@@ -25,6 +25,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	var roomParseState = ""
 	var tmpDescription = ""
 	var tmpDirection = ""
+	var tmpRoomName = "" 
 	  
 	var lastAttacked = ("", "")
 	
@@ -113,7 +114,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	    	parseState = ""
 	    	roomParseState = ""
 	    	tmpDescription = ""
-	    	tmpDirection = ""
 	      }
 	      else
 	      {
@@ -121,12 +121,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	      }
 	    case "Name" =>
 	      roomService ! NewRoom(input)
-	      room ! AddExit (tmpDirection, input)
-	      val newRoom = context.actorFor("../RoomService/" + input)
-	      room ! Leave
-	      newRoom ! AddExit("back", currentRoomName)
-	      room = newRoom
-	      
+	      tmpRoomName = input
 	      self ! Write("Describe what you see. End your description with a '.' on a line by itself.")
 	      roomParseState = "Description"
 	    case _ =>
@@ -166,7 +161,16 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	    room ! Enter
 	  case LeaveFail =>
 	    self ! Write("You can't go that way")
+	  case RoomCreated(name) =>
+	    //TODO: Make this not a race condition.
+	    room ! AddExit (tmpDirection, tmpRoomName)
+	    val newRoom = context.actorFor("../RoomService/" + tmpRoomName)
+	    room ! Leave
+	    newRoom ! AddExit("back", currentRoomName)
+	    room = newRoom
 	    
+    	tmpDirection = ""
+    	tmpRoomName = ""
 	  case ReportHit(who, damage) =>
 	    self ! Write("You hit " + who + " for " + damage + " damage")
 	  case ReportMiss(who) =>

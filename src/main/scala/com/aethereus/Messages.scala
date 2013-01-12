@@ -1,6 +1,7 @@
 package com.aethereus
 
 import akka.actor._
+import org.neo4j.graphdb.Node
 
 case class Write(message: String)
 case class Read(message: String)
@@ -39,3 +40,4 @@ case class AddExit(exit: (String, String))
 case object EnterMessage
 
 case class NewRoom(name: String)
+case class RoomCreated(name: String)
