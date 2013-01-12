@@ -4,12 +4,21 @@ import akka.actor._
 import akka.util.ByteString
 import akka.actor.IO._
 import akka.pattern.ask
-
 import util.Random
+import org.neo4j.scala.RestGraphDatabaseServiceProvider
+import org.neo4j.scala.Neo4jIndexProvider
+import java.net.URI
+import ua.t3hnar.bcrypt._
+import org.neo4j.graphdb._
+import org.neo4j.scala.Neo4jWrapper
 
-class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fightable with Inventory {
+class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jWrapper with Fightable with Inventory with RestGraphDatabaseServiceProvider with Neo4jIndexProvider {
     var currentRoomName = "Start" //ToDo: Figure out better way to initialize this
 	var nick = ""
+	  
+	def uri = new URI("http://localhost:7474/db/data/")
+	
+	val playerIndex = ds.gds.index.forNodes("PlayerIndex");
 	  
 	val lives = 10
 	
@@ -22,12 +31,15 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val roomService = context.actorFor("../RoomService")
 	
 	var parseState = "Get Nick"
+	var nickParseState = ""
 	var roomParseState = ""
 	var tmpDescription = ""
 	var tmpDirection = ""
 	var tmpRoomName = "" 
 	  
 	var lastAttacked = ("", "")
+	
+	var node: Node = null
 	
 	self ! Write("Your name?")
 	
@@ -97,9 +109,55 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	}
     
     def parseGetNick(input: String) = {
-      nick = input
-      room ! Enter
-      parseState = ""
+      if(nickParseState == "")
+      {
+	      nick = input
+	      
+	      withTx {
+	        implicit neo =>
+		      val res = playerIndex.get("nick", nick).getSingle();
+		      if(res != null)
+		      {
+		        self ! Write("Please enter your password")
+		        node = res;
+		      }
+		      else
+		      {
+		        self ! Write("You're new here!\r\nPlease enter a password for this account.")
+		      }
+	      }
+	      
+	      nickParseState = "password"
+      }
+      else if (nickParseState == "password")
+      {
+        withTx {
+          implicit neo =>
+	        if(node != null)
+	        {
+	          if(input.isBcrypted(node.getProperty("password").toString()))
+	          {
+	            self ! Write("Successfully logged in!")
+    	        parseState = ""
+		        nickParseState = ""
+			    room ! Enter
+	          }
+	          else
+	          {
+	            self ! Write("Please try again.")
+	          }
+	        }
+	        else
+	        {
+	          self ! Write("Character created!")
+	          node = createNode
+	          node("type") = "player"
+	          node("nick") = nick
+	          node("password") = input.bcrypt
+	          playerIndex.add(node, "nick",	nick)
+	        }
+	      }
+      }
     }
 	
 	def roomParser(input: String) = {

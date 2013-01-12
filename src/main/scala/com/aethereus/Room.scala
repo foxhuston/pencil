@@ -19,7 +19,7 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
 
   Console.println("Finding loaded nodes")
   
-  var startFound = false
+  var startFound = true
     
   // Load from graph
   withTx {
@@ -29,27 +29,31 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
       
       for(node <- everything)
       {
-        Console.println("Looking...")
+        Console.println("Looking (" + node.getProperty("type").toString() + ")")
         
-        node.getProperty("name") match {
-          case name: String =>
-          	node.getProperty("description") match {
-          	  case description: String =>
-          	    if(name == "Start") {
-          	      startFound = true;
-          	    }
-          	    var exits: Set[(String, String)] = Set()
-          	    var relationships = node.getRelationships()
-          	    for(rel <- relationships.filter(r => r.getStartNode() == node)) {
-          	      val direction = rel.getProperty("direction").toString()
-          	      val name = rel.getEndNode().getProperty("name").toString()
-          	      exits += ((direction, name))
-          	    }
-          	    
-          	    Console.println("Loaded " + name)
-          	    context.actorOf(Props(new Room(name, description, node, exits)), name = name)
-          	}
-        }
+        if(node.getProperty("type").toString() == "Room")
+        {
+          Console.println("Loading room...")
+	        node.getProperty("name") match {
+	          case name: String =>
+	          	node.getProperty("description") match {
+	          	  case description: String =>
+	          	    if(name == "Start") {
+	          	      startFound = true;
+	          	    }
+	          	    var exits: Set[(String, String)] = Set()
+	          	    var relationships = node.getRelationships()
+	          	    for(rel <- relationships.filter(r => r.getStartNode() == node)) {
+	          	      val direction = rel.getProperty("direction").toString()
+	          	      val name = rel.getEndNode().getProperty("name").toString()
+	          	      exits += ((direction, name))
+	          	    }
+	          	    
+	          	    Console.println("Loaded " + name)
+	          	    context.actorOf(Props(new Room(name, description, node, exits)), name = name)
+	          	}
+	        }
+	      }
       }
   }
   
