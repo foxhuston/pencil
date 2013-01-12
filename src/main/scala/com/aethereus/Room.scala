@@ -31,7 +31,7 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
       {
         Console.println("Looking (" + node.getProperty("type").toString() + ")")
         
-        if(node.getProperty("type").toString() == "Room")
+        if(node.hasProperty("type") && node.getProperty("type").toString() == "Room")
         {
           Console.println("Loading room...")
 	        node.getProperty("name") match {
