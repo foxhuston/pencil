@@ -60,7 +60,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val debugShutdown = "^shutdown$".r
 	
     def parseBehavior(input: String) = 
-      (parseBehaviorA orElse parseDebugBehavior orElse parseTravel(input))(input)
+      (parseBehaviorA orElse parseDebugBehavior orElse parseTravel)(input)
     
 	val parseBehaviorA: PartialFunction[String, Unit] = {
 	    case say(_, input) =>
@@ -84,8 +84,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	      self ! Write(printInventory())
 	    case describe(newDescription) =>
 	      room ! SetDescription(newDescription)
-	    case debugShutdown =>
-	      System.exit(0)
 	}
 	
 	val parseDebugBehavior: PartialFunction[String, Unit] = {
@@ -93,14 +91,13 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	    context.actorOf(Props(new Gremlin(room)))
 	}
 	
-	def parseTravel(input: String): PartialFunction[String, Unit] = {
-  	    case _ =>
-	   	  room ! LeaveBy(input)
+	def parseTravel: PartialFunction[String, Unit] = {
+  	    case exit =>
+	   	  room ! LeaveBy(exit)
 	}
     
     def parseGetNick(input: String) = {
       nick = input
-      
       room ! Enter
       parseState = ""
     }
@@ -168,7 +165,6 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	    room ! Leave
 	    newRoom ! AddExit("back", currentRoomName)
 	    room = newRoom
-	    
     	tmpDirection = ""
     	tmpRoomName = ""
 	  case ReportHit(who, damage) =>

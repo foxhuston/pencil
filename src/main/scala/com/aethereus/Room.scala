@@ -30,7 +30,6 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
       for(node <- everything)
       {
         Console.println("Looking...")
-        val description = 
         
         node.getProperty("name") match {
           case name: String =>
@@ -39,14 +38,21 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
           	    if(name == "Start") {
           	      startFound = true;
           	    }
+          	    var exits: Set[(String, String)] = Set()
+          	    var relationships = node.getRelationships()
+          	    for(rel <- relationships.filter(r => r.getStartNode() == node)) {
+          	      val direction = rel.getProperty("direction").toString()
+          	      val name = rel.getEndNode().getProperty("name").toString()
+          	      exits += ((direction, name))
+          	    }
+          	    
           	    Console.println("Loaded " + name)
-          	    context.actorOf(Props(new Room(name, description, node)), name = name)
+          	    context.actorOf(Props(new Room(name, description, node, exits)), name = name)
           	}
         }
       }
   }
   
-  Console.println("checking if start was loaded")
   if(!startFound)
   {
     Console.println("Detected new DB")
@@ -83,9 +89,8 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
 //Note: Want nouns up in here:
 // You are in a kitchen. There is a [sink (screwdriver)] here.
 
-class Room(var name: String, var description: String, val roomNode: Node) extends Actor with Neo4jWrapper with RestGraphDatabaseServiceProvider {
+class Room(var name: String, var description: String, val roomNode: Node, var exits: Set[(String, String)] = Set()) extends Actor with Neo4jWrapper with RestGraphDatabaseServiceProvider {
   Console.println("Here's " + name)
-  var exits: Set[(String, String)] = Set()
   var Inhabitants: Set[ActorRef] = Set()
   
   val random = new Random()
