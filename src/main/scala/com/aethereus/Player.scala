@@ -38,6 +38,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val say = "^('|say[ ]+)(.*)".r
 	val get = "^get(.*)".r
     val give = "^drop".r
+    val describe = "^describe(.*)$".r
     val drop = ""
     val take = ""
     val put = ""
@@ -54,6 +55,8 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	val equip = "^(equip|wear|wield)[ ]+(.*)$".r
 	val matchInventory = "^(i|inventory)$".r
 	val debugSpawn = "^(s|spawn)[ ]+(.*)".r
+	
+	val debugShutdown = "^shutdown$".r
 	
     def parseBehavior(input: String) = 
       (parseBehaviorA orElse parseDebugBehavior orElse parseTravel(input))(input)
@@ -78,6 +81,10 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Fighta
 	      equipItem(what)
 	    case matchInventory(_) =>
 	      self ! Write(printInventory())
+	    case describe(newDescription) =>
+	      room ! SetDescription(newDescription)
+	    case debugShutdown =>
+	      System.exit(0)
 	}
 	
 	val parseDebugBehavior: PartialFunction[String, Unit] = {

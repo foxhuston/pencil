@@ -32,5 +32,18 @@
 	<classpathentry kind="lib" path="/usr/local/Cellar/akka/2.1.0/libexec/lib/akka/slf4j-api-1.7.2.jar"/>
 	<classpathentry kind="lib" path="/usr/local/Cellar/akka/2.1.0/libexec/lib/akka/uncommons-maths-1.2.2a.jar"/>
 	<classpathentry kind="lib" path="/usr/local/Cellar/akka/2.1.0/libexec/lib/akka/zeromq-scala-binding_2.10-0.0.7.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/geronimo-jta_1.1_spec-1.1.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/lucene-core-3.5.0.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-cypher-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-graph-algo-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-graph-matching-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-jmx-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-kernel-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-lucene-index-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-shell-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/neo4j-udc-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/org.apache.servicemix.bundles.jline-0.9.94_1.jar"/>
+	<classpathentry kind="lib" path="/usr/local/Cellar/neo4j/community-1.8.1-unix/libexec/lib/server-api-1.8.1.jar"/>
+	<classpathentry kind="lib" path="/Users/fox/.m2/repository/org/neo4j/neo4j-scala/0.2.0-M2-SNAPSHOT/neo4j-scala-0.2.0-M2-SNAPSHOT.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

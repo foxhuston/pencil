@@ -2,24 +2,94 @@ package com.aethereus
 
 import akka.actor._
 import scala.util.Random
+import org.neo4j.graphdb._
+import org.neo4j.cypher.javacompat.ExecutionEngine
+import org.neo4j.helpers.collection.IteratorUtil
+import scala.collection.JavaConversions._
+import org.neo4j.scala._
+import java.net.URI
 
-class RoomService extends Actor {
+class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServiceProvider with Neo4jIndexProvider {
+  def uri = new URI("http://localhost:7474/db/data/")
+    
+  Console.println("Getting Index")
+
+  // The default getter thingy from neo4j-scala doesn't seem to work
+  //val roomIndex = ds.gds.index.forNodes("RoomIndex");
+
+  Console.println("Finding loaded nodes")
+  
+  var startFound = false
+    
+  // Load from graph
+  withTx {
+    implicit neo =>
+      val everything = getAllNodes(neo)
+      //Console.println("found " + everything.count(_ => true) + " nodes.")
+      
+      for(node <- everything)
+      {
+        Console.println("Looking...")
+        val description = 
+        
+        node.getProperty("name") match {
+          case name: String =>
+          	node.getProperty("description") match {
+          	  case description: String =>
+          	    if(name == "Start") {
+          	      startFound = true;
+          	    }
+          	    Console.println("Loaded " + name)
+          	    context.actorOf(Props(new Room(name, description, node)), name = name)
+          	}
+        }
+      }
+  }
+  
+  Console.println("checking if start was loaded")
+  if(!startFound)
+  {
+    Console.println("Detected new DB")
+    makeNewRoom("Start", "This is the starting room")
+  }
+  
+  Console.println("makeNewRoom")
+  // handle receive
+  
+  def makeNewRoom(name: String, description: String = "") = {
+    Console.println("Creating " + name)
+      withTx {
+		  implicit neo => {
+		    val roomNode = createNode
+		    roomNode("type") = "Room"
+		    roomNode("name") = name
+		    roomNode("description") = description
+		    //roomIndex += (roomNode, "name", name)
+		    context.actorOf(Props(new Room(name, description, roomNode)), name = name)
+		  }
+	  }
+  }
+  
+  Console.println("listening for actor messages")
+  
   def receive = {
     case NewRoom(name) =>
       Console.println("Creating " + name)
-      context.actorOf(Props(new Room(name)), name = name)
+      makeNewRoom(name)
   }
 } 
 
 //Note: Want nouns up in here:
 // You are in a kitchen. There is a [sink (screwdriver)] here.
 
-class Room(var name: String) extends Actor {
-  var description = ""
+class Room(var name: String, var description: String, val roomNode: Node) extends Actor with Neo4jWrapper with RestGraphDatabaseServiceProvider {
+  Console.println("Here's " + name)
   var exits: Set[(String, String)] = Set()
   var Inhabitants: Set[ActorRef] = Set()
   
   val random = new Random()
+  
+  def uri = new URI("http://localhost:7474/db/data/")
   
   Console.println(context.self.path)
   
@@ -43,6 +113,10 @@ class Room(var name: String) extends Actor {
       context.sender ! Write(description)
     case SetDescription(newDescription) =>
       description = newDescription
+      withTx {
+        implicit neo =>
+    	  roomNode("description") = newDescription
+      }
     case EnterMessage =>
       writeEnterMessage(context.sender)
     case Exits =>
