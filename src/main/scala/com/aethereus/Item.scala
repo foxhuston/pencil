@@ -40,6 +40,25 @@ object WoodenSword extends Item {
       val minDamage = 1
 }
 
+object ReverseMirror extends Item {
+	  val name = "A reverse mirror"
+    
+	  val description = "This item allows you to tell it what you look like"
+      
+      val hpBonus = 0
+      val mpBonus = 0
+      
+      val strengthBonus = 1
+      val dexterityBonus = 0
+      val intelligenceBonus = 0
+      
+      val armorBonus = 0
+      val speedBonus = 0
+      
+      val maxDamageOffset = 2
+      val minDamage = 1
+}
+
 trait Inventory {
   var inventory: List[(Item, Int)] = List()
   var equipped: List[Item] = List()

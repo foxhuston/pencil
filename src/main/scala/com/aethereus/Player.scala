@@ -51,7 +51,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	val say = "^('|say[ ]+)(.*)".r
 	val get = "^get(.*)".r
     val give = "^drop".r
-    val describe = "^describe(.*)$".r
+    val describe = "^describe[ ]+(.*)$".r
     val drop = ""
     val take = ""
     val put = ""
