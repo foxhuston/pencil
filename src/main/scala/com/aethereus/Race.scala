@@ -2,24 +2,24 @@ package com.aethereus
 
 object Races {
   val registry: Set[(String, Race)]
-		  = Set(("halfling", Halfling),
-		        ("elf", Elf),
-		        ("dwarf", Dwarf),
-		        ("human", Human),
-		        ("half-elf", HalfElf))
+      = Set(("halfling", Halfling),
+            ("elf", Elf),
+            ("dwarf", Dwarf),
+            ("human", Human),
+            ("half-elf", HalfElf))
 }
 
 abstract class Race {
-	val name: String
-	val description: String
+  val name: String
+  val description: String
   
-	def modifyDamage(input: Damage): Damage = {
-	  return input
-	}
-	
-	def modifyAttack(input: AttackRoll): AttackRoll = {
-	  return input
-	}
+  def modifyDamage(input: Damage): Damage = {
+    return input
+  }
+  
+  def modifyAttack(input: AttackRoll): AttackRoll = {
+    return input
+  }
 }
 
 object Halfling extends Race {
