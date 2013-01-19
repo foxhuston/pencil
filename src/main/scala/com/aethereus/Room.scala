@@ -27,23 +27,21 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
       val everything = getAllNodes(neo)
       //Console.println("found " + everything.count(_ => true) + " nodes.")
 
-      for(node <- everything)
-      {
+      for (node <- everything) {
         Console.println("Looking (" + node.getProperty("type").toString() + ")")
 
-        if(node.hasProperty("type") && node.getProperty("type").toString() == "Room")
-        {
+        if (node.hasProperty("type") && node.getProperty("type").toString() == "Room") {
           Console.println("Loading room...")
           node.getProperty("name") match {
             case name: String =>
               node.getProperty("description") match {
                 case description: String =>
-                  if(name == "Start") {
+                  if (name == "Start") {
                     startFound = true;
                   }
                   var exits: Set[(String, String)] = Set()
                   var relationships = node.getRelationships()
-                  for(rel <- relationships.filter(r => r.getStartNode() == node)) {
+                  for (rel <- relationships.filter(r => r.getStartNode() == node)) {
                     val direction = rel.getProperty("direction").toString()
                     val name = rel.getEndNode().getProperty("name").toString()
                     exits += ((direction, name))
@@ -57,8 +55,7 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
       }
   }
 
-  if(!startFound)
-  {
+  if (!startFound) {
     Console.println("Detected new DB")
     makeNewRoom("Start", "This is the starting room")
   }
@@ -68,16 +65,17 @@ class RoomService() extends Actor with Neo4jWrapper with RestGraphDatabaseServic
 
   def makeNewRoom(name: String, description: String = "") = {
     Console.println("Creating " + name)
-      withTx {
-      implicit neo => {
-        val roomNode = createNode
-        roomNode("type") = "Room"
-        roomNode("name") = name
-        roomNode("description") = description
-        roomIndex += (roomNode, "name", name)
-        context.actorOf(Props(new Room(name, description, roomNode)), name = name)
-        context.sender ! RoomCreated(name)
-      }
+    withTx {
+      implicit neo =>
+        {
+          val roomNode = createNode
+          roomNode("type") = "Room"
+          roomNode("name") = name
+          roomNode("description") = description
+          roomIndex += (roomNode, "name", name)
+          context.actorOf(Props(new Room(name, description, roomNode)), name = name)
+          context.sender ! RoomCreated(name)
+        }
     }
   }
 
@@ -108,28 +106,28 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
   def Leave(nick: String, sender: ActorRef) = {
     Inhabitants -= sender
     InhabitantNicks -= nick
-    for(p <- Inhabitants) p ! LeaveMessage(sender)
+    for (p <- Inhabitants) p ! LeaveMessage(sender)
   }
 
   def receive = partA orElse partB
 
   val partA: PartialFunction[Any, Unit] = {
     case Enter(nick) =>
-      for(p <- Inhabitants) p ! JoinMessage(context.sender)
+      for (p <- Inhabitants) p ! JoinMessage(context.sender)
       writeEnterMessage(context.sender)
       Inhabitants += context.sender
       InhabitantNicks += nick
     case Leave(nick) =>
       Leave(nick, context.sender)
     case Say(who, what) =>
-      for(p <- Inhabitants) p ! Write(s"[199 ${who} says ${what}]")
+      for (p <- Inhabitants) p ! Write(s"[45 ${who} says ${what}]")
     case Description =>
       context.sender ! Write(description)
     case SetDescription(newDescription) =>
       description = newDescription
       withTx {
         implicit neo =>
-        roomNode("description") = newDescription
+          roomNode("description") = newDescription
       }
     case EnterMessage =>
       writeEnterMessage(context.sender)
@@ -140,15 +138,15 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
       withTx {
         implicit neo =>
           val nodeTo = roomIndex.get("name", nameTo).getSingle()
-          if(nodeTo != null) {
-            val relation:Relationship = roomNode --> "EXITS_TO" --> nodeTo <
+          if (nodeTo != null) {
+            val relation: Relationship = roomNode --> "EXITS_TO" --> nodeTo <
             val _ = relation.setProperty("direction", direction)
           } else {
             Console.println("Epic faliure")
           }
       }
     case Attack(who, what, damage) =>
-      for(p <- Inhabitants) p ! Attack(who, what, damage)
+      for (p <- Inhabitants) p ! Attack(who, what, damage)
     case LeaveBy(nick, direction) =>
       exits.find(_._1 == direction) match {
         case Some(t) =>
@@ -168,12 +166,12 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
   }
 
   def writeEnterMessage(sender: ActorRef) = {
-    sender !
-        Write(name + "\r\n"
-            + s"[255 ${description}]\r\n"
-            + "Exits: [119 "
-            + exits.map(_._1).mkString(", ") + "]\r\n"
-            + "[190 In this room: " + InhabitantNicks.mkString(", ") + "]"
-            )
+    val xs = name + "\r\n" +
+      s"[255 ${description}]\r\n" +
+      "Exits: [119 " +
+      exits.map(_._1).mkString(", ") + "]\r\n" +
+      "[190 In this room: " + InhabitantNicks.mkString(", ") + "]"
+
+    sender ! Write(xs)
   }
 }

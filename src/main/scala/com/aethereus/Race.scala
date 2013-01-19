@@ -6,9 +6,9 @@ object Races {
             ("elf", Elf),
             ("dwarf", Dwarf),
             ("human", Human),
-            ("half-elf", HalfElf)
-            ("gnome", Gnome)
-            ("orc", Orc)
+            ("half-elf", HalfElf),
+            ("gnome", Gnome),
+            ("orc", Orc),
             ("satyr", Satyr))
 }
 

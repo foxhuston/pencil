@@ -10,43 +10,6 @@ import org.neo4j.scala.SingletonEmbeddedGraphDatabaseServiceProvider
 import org.neo4j.scala.Neo4jIndexProvider
 import org.neo4j.scala.RestGraphDatabaseServiceProvider
 import java.net.URI
-import scala.collection.mutable.Stack
-
-object Color {
-  def parse(str: String) = {
-    var stack: Stack[Int] = new Stack()
-    var currentParseColor = "";
-    var currentEmittedColor = 231;
-    var state = ""
-
-    var currentString = ""
-
-    for (c <- str) {
-      if (state == "") {
-        if (c == '[') {
-          stack.push(currentEmittedColor)
-          currentEmittedColor = 0;
-          state = "findingColor"
-        } else if (c == ']') {
-          currentString += s"\u001B[38;5;${stack.pop()}m"
-        } else {
-          currentString += c
-        }
-      } else if (state == "findingColor") {
-        if (c == ' ') {
-          state = ""
-          currentEmittedColor = currentParseColor.toInt
-          currentString += s"\u001B[38;5;${currentEmittedColor}m"
-          currentParseColor = ""
-        } else {
-          currentParseColor += c;
-        }
-      }
-    }
-
-    currentString
-  }
-}
 
 class TCPServer(port: Int) extends Actor with RestGraphDatabaseServiceProvider with Neo4jIndexProvider {
   def uri = new URI("http://localhost:7474/db/data/")
