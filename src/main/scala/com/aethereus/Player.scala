@@ -1,5 +1,7 @@
 package com.aethereus
 
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import akka.util.ByteString
 import akka.actor.IO._
@@ -37,9 +39,11 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	var tmpDirection = ""
 	var tmpRoomName = "" 
 	  
-	var lastAttacked = ("", "")
+	var lastAttacked : (String, DamageType) = ("", null)
 	
 	var node: Node = null
+	
+	var combatTimer: Cancellable = null 
 	
 	self ! Write("Your name?")
 	
@@ -61,7 +65,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
     val open = ""
     val close = ""
     val quit = ""
-    val stats = "(score|stats)"
+    val stats = "(score|stats)".r
 	val shout = "^\"".r
 	val testAttack = "^kill[ ]+(.*)$".r
 	val testAttackShort = "^a$".r
@@ -77,6 +81,8 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	val parseBehaviorA: PartialFunction[String, Unit] = {
 	    case say(_, input) =>
 	      room ! Say(nick, input)
+	    case stats(_) =>
+	      printStats
 	    case create(_) =>
 	      self ! Write("What direction are you traveling?")
 	      parseState = "RoomParser"
@@ -84,12 +90,9 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	      room ! EnterMessage
 	    case whoAmI(_) =>
 	      self ! Write("You are " + nick)
-	    case testAttackShort() =>
-	      val (w, h) = lastAttacked
-	      room ! Attack(nick, w, h, roll(), damageRoll())
 	    case testAttack(what) =>
-	      lastAttacked = (what, "str")
-	      room ! Attack(nick, what, "str", roll(), damageRoll())
+	      lastAttacked = (what, Strength)
+	      combatTimer = context.system.scheduler.schedule(0 second, (10/speed) second, self, "combatTick")
 	    case equip(_, what) =>
 	      equipItem(what)
 	    case matchInventory(_) =>
@@ -108,6 +111,11 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	   	  room ! LeaveBy(exit)
 	}
     
+	def getAttributesFromDatabase() = {
+	  strength = node("strength").getOrElse("10").toInt
+	  speed = node("speed").getOrElse("10").toInt
+	}
+	
     def parseGetNick(input: String) = {
       if(nickParseState == "")
       {
@@ -120,6 +128,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 		      {
 		        self ! Write("Please enter your password")
 		        node = res;
+		        getAttributesFromDatabase()
 		      }
 		      else
 		      {
@@ -155,11 +164,16 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	          node("nick") = nick
 	          node("password") = input.bcrypt
 	          playerIndex.add(node, "nick",	nick)
+	          parseState = ""
+		      nickParseState = ""
+			  room ! Enter
 	        }
 	      }
       }
     }
 	
+    val roomIndex = ds.gds.index.forNodes("RoomIndex");
+    
 	def roomParser(input: String) = {
 	  roomParseState match {
 	    case "Description" =>
@@ -175,10 +189,21 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	    	tmpDescription += input + "\r\n"
 	      }
 	    case "Name" =>
-	      roomService ! NewRoom(input)
-	      tmpRoomName = input
-	      self ! Write("Describe what you see. End your description with a '.' on a line by itself.")
-	      roomParseState = "Description"
+	      withTx {
+	        implicit neo => 
+	            val replacedInput = input.replace(' ', '_')
+	        	val x = roomIndex.get("name", replacedInput).getSingle()
+	        	if(x == null) {
+				    roomService ! NewRoom(replacedInput)
+				    tmpRoomName = replacedInput
+				    self ! Write("Describe what you see. End your description with a '.' on a line by itself.")
+				    roomParseState = "Description"
+	        	}
+	        	else
+	        	{
+	        	  self ! Write("Sorry, that room name is taken. Please enter another name.")
+	        	}
+	      }
 	    case _ =>
 	      tmpDirection = input
 	      self ! Write("What's the room's name?")
@@ -186,6 +211,19 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	  }
 	}
   
+	def printStats = {
+	  val str = s"Stats for $nick\r\n" +
+	    s"Health: $hp\r\n" +
+	    s"Magic: $mp\r\n\r\n" +
+	    s"Strength: $strength\r\n" +
+	    s"Dexterity: $dexterity\r\n" +
+	    s"Intelligence: $intelligence\r\n\r\n" +
+	    s"Armor: $armor\r\n" +
+	    s"Speed: $speed\r\n"
+	  
+	  self ! Write(str)
+	}
+	
 	def receive = {
 	  case IO.Read(readHandle, byteString) =>
 	    val input = byteString.utf8String.trim()
@@ -210,6 +248,8 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	  case SendMeALeaveMessage =>
 	    context.sender ! Write(nick + " left the room.")
 	  case LeaveOk(r) =>
+	    if(combatTimer != null) combatTimer.cancel()
+	    
 	    val (d, roomName) = r
 	    currentRoomName = roomName
 	    room = context.actorFor("../RoomService/" + roomName)
@@ -229,11 +269,15 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	    self ! Write("You hit " + who + " for " + damage + " damage")
 	  case ReportMiss(who) =>
 	    self ! Write("You missed " + who)
-	    
-	  case Attack(who, what, how, roll, damageRoll) =>
+	  case "combatTick" =>
+	    var (what, how) = lastAttacked
+	    room ! Attack(nick, what, new Damage(strength + getStrengthBonuses, how, damageRoll()))
+	  case Died =>
+	    combatTimer.cancel()
+	  case Attack(who, what, damage) =>
 	    if(nick == what) {
-	      self ! Write(who + " is attacking! (" + roll + ", " + how + ")")
-	      val (message, alive) = processAttack(how, roll, damageRoll)
+          self ! Write(who + " is attacking!")
+	      val (message, alive) = processAttack(damage)
 	      self ! Write(message)
 	      if(!alive)
 	      {

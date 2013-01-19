@@ -24,20 +24,19 @@ abstract trait Fightable {
 	
 	val fightableRandom = new Random()
 
+	def hitCheck(mine: Int, them: Int) = {
+	  fightableRandom.nextDouble() >= 1/(1+Math.pow(Math.E,(-.4 * (mine-them-5))))
+	}
 	
-	def roll() = {
-      fightableRandom.nextInt(20) + 1;
-    }
-	
-	def processAttack(how: String, roll: Int, attackRoll: Int): (String, Boolean) = {
-	  how match {
-	        case "str" =>
-	        	if(roll > strength + getStrengthBonuses()) {
-	        	  hp -= attackRoll
+	def processAttack(withDamage : Damage): (String, Boolean) = {
+	  withDamage.againstWhat match {
+	        case Strength =>
+	        	if(hitCheck(strength + getStrengthBonuses(), withDamage.attackerLevel)) {
+	        	  hp -= withDamage.damageRoll
 	        	  if(hp < 0) {
 	        	    return ("You died", false)
 	        	  }
-	        	  return ("You were hit for " + attackRoll + " hp!", true)
+	        	  return ("You were hit for " + withDamage.damageRoll + " hp!", true)
 	        	}
 	        	return ("The attack missed!", true)
 	      }

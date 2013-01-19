@@ -144,8 +144,8 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
             Console.println("Epic faliure")
           }
       }
-    case Attack(who, what, how, roll, attackRoll) =>
-      for(p <- Inhabitants) p ! Attack(who, what, how, roll, attackRoll)
+    case Attack(who, what, damage) =>
+      for(p <- Inhabitants) p ! Attack(who, what, damage)
     case LeaveBy(direction) =>
       exits.find(_._1 == direction) match {
         case Some(t) =>

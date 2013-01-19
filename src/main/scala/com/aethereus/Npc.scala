@@ -19,11 +19,12 @@ abstract class Npc(var room: ActorRef) extends Actor with Inventory with Fightab
 	room ! Enter
 	
 	val handleAttack: PartialFunction[Any, Unit] = {
-      case Attack(who, what, how, roll, damageRoll) =>
+      case Attack(who, what, damage) =>
 	      if(what.toLowerCase == name.toLowerCase) {
-	    	  val (message, alive) = processAttack(how, roll, damageRoll)
+	    	  val (message, alive) = processAttack(damage)
 	    	  if(!alive)
 	    	  {
+	    	    attacking ! Died
 	    	    room ! Leave
 	    	    context.stop(self);
 	    	    room ! Say(name, "Died")
@@ -50,7 +51,7 @@ class Gremlin(sroom: ActorRef) extends Npc(sroom) {
       attackingNick = nick
     case "tick" =>
       if(attackingNick != "") {
-        room ! Attack(name, attackingNick, "str", roll(), damageRoll())
+        room ! Attack(name, attackingNick, new Damage(strength + getStrengthBonuses(), Strength, damageRoll()))
       }
       
   }

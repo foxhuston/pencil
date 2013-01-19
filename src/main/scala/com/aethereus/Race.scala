@@ -3,7 +3,6 @@ package com.aethereus
 object Races {
   val registry: Set[(String, Race)]
 		  = Set(("halfling", Halfling),
-		        ("fox", Fox),
 		        ("elf", Elf),
 		        ("dwarf", Dwarf),
 		        ("human", Human),

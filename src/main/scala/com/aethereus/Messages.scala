@@ -26,9 +26,10 @@ case class GetNickResponse(nick: String)
 
 case class Say(nick: String, input: String)
 
-case class Attack(nick: String, what: String, how: String, roll: Int, attackRoll: Int)
+case class Attack(nick: String, what: String, damage: Damage)
 case class ReportHit(who: String, damage: Int)
 case class ReportMiss(who: String)
+case object Died
 
 case object Description
 case class SetDescription(description: String)
