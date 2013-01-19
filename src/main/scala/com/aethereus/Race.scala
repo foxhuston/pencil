@@ -7,7 +7,8 @@ object Races {
             ("dwarf", Dwarf),
             ("human", Human),
             ("half-elf", HalfElf)
-            ("gnome", Gnome))
+            ("gnome", Gnome)
+            ("orc", Orc))
 }
 
 abstract class Race {
@@ -52,4 +53,9 @@ object HalfElf extends Race {
 object Gnome extends Race {
   val name = "Gnome"
   val description = "Small humaniod creature that lives underground.  Often they wear pointy hats."
+}
+
+object Orc extends Race {
+  val name = "Orc"
+  val description = "Brutish, aggressive, and repulsive."
 }
