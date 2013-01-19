@@ -16,7 +16,7 @@ abstract class Npc(var room: ActorRef) extends Actor with Inventory with Fightab
 	  case _ => Unit
 	}
 	
-	room ! Enter
+	room ! Enter(name)
 	
 	val handleAttack: PartialFunction[Any, Unit] = {
       case Attack(who, what, damage) =>

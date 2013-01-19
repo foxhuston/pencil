@@ -45,7 +45,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	
 	var combatTimer: Cancellable = null 
 	
-	self ! Write("Your name?")
+	self ! Write("[228 Your name?]")
 	
 	
 	// Pass verbs -> room -> room objects
@@ -62,9 +62,10 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
     val tell = ""
     val alias = ""
     val unequip = "(lower|unequip|remove)(.*)".r
+    val who = "^who$".r
     val open = ""
     val close = ""
-    val quit = ""
+    val quit = "^quit$".r
     val stats = "(score|stats)".r
 	val shout = "^\"".r
 	val testAttack = "^kill[ ]+(.*)$".r
@@ -99,6 +100,12 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	      self ! Write(printInventory())
 	    case describe(newDescription) =>
 	      room ! SetDescription(newDescription)
+	    case quit() =>
+	      room ! Leave
+	      self ! Write("Hey thanks for playing.")
+	      socket.close()
+	    case who() =>
+	      context.actorSelection("../*") ! GetNick
 	}
 	
 	val parseDebugBehavior: PartialFunction[String, Unit] = {
@@ -108,7 +115,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	
 	def parseTravel: PartialFunction[String, Unit] = {
   	    case exit =>
-	   	  room ! LeaveBy(exit)
+	   	  room ! LeaveBy(nick, exit)
 	}
     
 	def getAttributesFromDatabase() = {
@@ -149,7 +156,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	            self ! Write("Successfully logged in!")
     	        parseState = ""
 		        nickParseState = ""
-			    room ! Enter
+			    room ! Enter(nick)
 	          }
 	          else
 	          {
@@ -166,7 +173,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	          playerIndex.add(node, "nick",	nick)
 	          parseState = ""
 		      nickParseState = ""
-			  room ! Enter
+			  room ! Enter(nick)
 	        }
 	      }
       }
@@ -179,7 +186,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	    case "Description" =>
 	      if(input == ".") {
 	    	room ! SetDescription(tmpDescription)
-	    	room ! Enter
+	    	room ! Enter(nick)
 	    	parseState = ""
 	    	roomParseState = ""
 	    	tmpDescription = ""
@@ -238,7 +245,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	    room ! Leave
 	    context.stop(self)
 	  case Write(s) =>
-	    socket write ByteString(s + "\r\n[" + hp + "]> ")
+	    socket write ByteString(Color.parse(s) + "\r\n> ")
 	  case JoinMessage(player) =>
 	    player ! SendMeAJoinMessage
 	  case SendMeAJoinMessage =>
@@ -253,7 +260,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	    val (d, roomName) = r
 	    currentRoomName = roomName
 	    room = context.actorFor("../RoomService/" + roomName)
-	    room ! Enter
+	    room ! Enter(nick)
 	  case LeaveFail =>
 	    self ! Write("You can't go that way")
 	  case RoomCreated(name) =>
@@ -284,7 +291,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	        hp = 10
 	        room ! Leave
 	        room = context.actorFor("../RoomService/Start")
-	        room ! Enter
+	        room ! Enter(nick)
 	      }
 	    } else {
 	      self ! Write(who + " is attacking " + what + "!")
@@ -292,6 +299,9 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 	    
 	  case GetNick =>
 	    context.sender ! GetNickResponse(nick)
+	   
+	  case GetNickResponse(nick) =>
+	    socket write ByteString(s"$nick\r\n")
 	    
 	}
 }

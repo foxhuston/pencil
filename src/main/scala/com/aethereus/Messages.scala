@@ -1,7 +1,7 @@
 package com.aethereus
 
-import akka.actor._
 import org.neo4j.graphdb.Node
+import akka.actor._
 
 case class Write(message: String)
 case class Read(message: String)
@@ -12,9 +12,11 @@ case object SendMeAJoinMessage
 case class LeaveMessage(player: ActorRef)
 case object SendMeALeaveMessage
 
-case object Enter
-case object Leave
-case class LeaveBy(direction: String)
+
+
+case class Enter(nick: String)
+case class Leave(nick: String)
+case class LeaveBy(nick: String, direction: String)
 case class LeaveOk(exit: (String, String))
 case object LeaveFail
 
