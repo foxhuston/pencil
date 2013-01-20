@@ -20,6 +20,9 @@ case class LeaveBy(nick: String, direction: String)
 case class LeaveOk(exit: (String, String))
 case object LeaveFail
 
+case class RoomLook(nick: String, who: String)
+case class Look(nick: String, atWhom: String, who: ActorRef)
+
 case object RandomRoomInhabitant
 case class RandomRoomInhabitantResponse(actor: ActorRef)
 

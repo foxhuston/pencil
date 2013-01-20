@@ -131,6 +131,8 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
       }
     case EnterMessage =>
       writeEnterMessage(context.sender)
+    case RoomLook(nick, what) =>
+      for(p <- Inhabitants) p ! Look(nick, what, context.sender)
     case Exits =>
       context.sender ! ExitMessage(exits)
     case AddExit((direction, nameTo)) =>
