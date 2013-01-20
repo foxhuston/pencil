@@ -1,6 +1,13 @@
 package com.aethereus
 
 import scala.util.Random
+import akka.actor.ActorRef
+
+object ItemRegistry {
+  var items: Set[(String, () => Item)] =
+    Set(("WoodenSword", () => WoodenSword),
+      ("ReverseMirror", () => ReverseMirror))
+}
 
 abstract class Item {
   var equipped = false
@@ -21,6 +28,9 @@ abstract class Item {
 
   val maxDamageOffset: Int
   val minDamage: Int
+
+  def canInteract(command: String): Boolean = false
+  def interact(command: String, actorRef: ActorRef) = {}
 }
 
 object WoodenSword extends Item {
@@ -61,6 +71,47 @@ object ReverseMirror extends Item {
 
   val maxDamageOffset = 2
   val minDamage = 1
+
+  val setDescription = "set description (.*)".r
+  val setRace = "set race (.*)".r
+
+  override def canInteract(command: String): Boolean = {
+    command match {
+      case "look mirror" |
+        setDescription(_) |
+        setRace(_) =>
+        return true
+      case _ =>
+        return false
+    }
+  }
+
+  override def interact(command: String, actorRef: ActorRef) = {
+    command match {
+      case "look mirror" =>
+        actorRef ! Write("You notice an ornate mirror, sitting heavily on the ground. " +
+          "Upon further inspection, you see that it is a [87 magic mirror], to which " +
+          "you describe yourself, and it will make it so.\r\n\r\n" +
+          "To use: [118 set description {description}] to describe yourself, and " +
+          "[118 set race {race}] to set your race.")
+      case setDescription(description) =>
+        actorRef ! SetDescription(description)
+        actorRef ! Write("You've changed a bit about your [118 look], and you decide you're pretty " +
+          "pleased with the progress you've been making in your life.")
+      case setRace(race) =>
+        val r = race.toLowerCase()
+        val articledName = Races.registry.find(_._1 == r) match {
+          case Some((r, race)) =>
+            actorRef ! SetRace(r)
+            actorRef ! Write("You feel [118 faint], and the room seems to swirl around you. " +
+              "You [120 stagger] around a bit, but when you get your bearings, you see your " +
+              s"new self looking back.\r\n\r\n[118 You are now ${race.nameWithArticle}")
+          case None =>
+            actorRef ! Write("That's not a race!")
+
+        }
+    }
+  }
 }
 
 trait Inventory {

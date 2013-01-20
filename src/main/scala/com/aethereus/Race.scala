@@ -15,6 +15,16 @@ abstract class Race {
   val name: String
   val description: String
 
+  def nameWithArticle = {
+    var articledName = name
+    if (articledName matches "^[AOEUIaoeui].*") {
+      articledName = "an " + articledName
+    } else {
+      articledName = "a " + articledName
+    }
+    articledName
+  }
+
   def modifyStats(input: Player) = {}
 
   def modifyDamage(input: Damage): Damage = {

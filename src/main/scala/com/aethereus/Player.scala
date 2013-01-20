@@ -77,7 +77,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
   val debugShutdown = "^shutdown$".r
 
   def parseBehavior(input: String) =
-    (parseBehaviorA orElse parseDebugBehavior orElse parseTravel)(input)
+    (parseBehaviorA orElse parseDebugBehavior orElse execRoomCommand)(input)
 
   def startAttacking(what: String) = {
     lastAttacked = (what, Strength)
@@ -124,14 +124,20 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
       context.actorOf(Props(new Gremlin(room)))
   }
 
-  def parseTravel: PartialFunction[String, Unit] = {
-    case exit =>
-      room ! LeaveBy(nick, exit)
+  def setRace(newRace: String) = {
+    node("race") = newRace;
+    getAttributesFromDatabase()
+  }
+
+  def execRoomCommand: PartialFunction[String, Unit] = {
+    case command =>
+      room ! RoomCommand(nick, command)
   }
 
   def getAttributesFromDatabase() = {
     strength = node("strength").getOrElse("10").toInt
     speed = node("speed").getOrElse("10").toInt
+    description = node("description").getOrElse("")
     val r = node("race").getOrElse("human")
     race = Races.registry.find(s => s._1 == r).getOrElse(("", Human))._2
     race.modifyStats(this)
@@ -300,6 +306,16 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
     case GetNickResponse(nick) =>
       socket write ByteString(s"$nick\r\n")
 
+    case SetRace(race) =>
+      setRace(race)
+
+    case SetDescription(newDescription) =>
+      withTx {
+        implicit neo =>
+          description = newDescription
+          node("description") = newDescription
+      }
+
     case Look(who, atWhom, ref) =>
       if (atWhom == nick) {
         if (who != nick) self ! Write(s"${who} examines you with a wary glance.")
@@ -314,10 +330,14 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
 
         if (equippedString == "") equippedString = "nothing"
 
-        val description = s"You see [202 ${nick}], a ${race.name}\r\n" +
+        var descriptionLine = description;
+        if (descriptionLine == "") descriptionLine = "You notice nothing unusual."
+
+        val d = s"You see [202 ${nick}], ${race.nameWithArticle}\r\n" +
+          descriptionLine + "\r\n" +
           s"He's [202 carrying]: ${itemString}\r\n" +
           s"He's [202 equipped]: ${equippedString}"
-        ref ! Write(description)
+        ref ! Write(d)
       }
 
   }

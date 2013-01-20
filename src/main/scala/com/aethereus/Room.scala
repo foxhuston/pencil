@@ -96,6 +96,13 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
   var Inhabitants: Set[ActorRef] = Set()
   var InhabitantNicks: Set[String] = Set()
 
+  var items =
+    roomNode("items").getOrElse("")
+      .split(",")
+      .flatMap(s => ItemRegistry.items.filter(x => x._1 == s))
+      .map(x => x._2)
+      .map(f => f())
+
   val random = new Random()
 
   def uri = new URI("http://localhost:7474/db/data/")
@@ -132,7 +139,13 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
     case EnterMessage =>
       writeEnterMessage(context.sender)
     case RoomLook(nick, what) =>
-      for(p <- Inhabitants) p ! Look(nick, what, context.sender)
+      for (p <- Inhabitants) p ! Look(nick, what, context.sender)
+      for (i <- items) {
+        // Special case for look, I think.
+        if (i.canInteract(s"look ${what}")) {
+          i.interact(s"look ${what}", context.sender)
+        }
+      }
     case Exits =>
       context.sender ! ExitMessage(exits)
     case AddExit((direction, nameTo)) =>
@@ -149,14 +162,22 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
       }
     case Attack(who, what, damage) =>
       for (p <- Inhabitants) p ! Attack(who, what, damage)
-    case LeaveBy(nick, direction) =>
-      exits.find(_._1 == direction) match {
-        case Some(t) =>
-          Leave(nick, context.sender)
-          context.sender ! LeaveOk(t)
+    case RoomCommand(nick, command) =>
+      items.find(item => item.canInteract(command)) match {
+        case Some(item) =>
+          item.interact(command, context.sender)
+
         case None =>
-          context.sender ! LeaveFail
+          exits.find(_._1 == command) match {
+            case Some(t) =>
+              Leave(nick, context.sender)
+              context.sender ! LeaveOk(t)
+
+            case None =>
+              context.sender ! LeaveFail
+          }
       }
+
   }
 
   val partB: PartialFunction[Any, Unit] = {
@@ -170,9 +191,9 @@ class Room(var name: String, var description: String, val roomNode: Node, var ex
   def writeEnterMessage(sender: ActorRef) = {
     val xs = name + "\r\n" +
       s"[255 ${description}]\r\n" +
-      "Exits: [119 " +
-      exits.map(_._1).mkString(", ") + "]\r\n" +
-      "[190 In this room: " + InhabitantNicks.mkString(", ") + "]"
+      s"Exits: [119 ${exits.map(_._1).mkString(", ")}]\r\n" +
+      s"Items: ${items.map(i => i.name).mkString(", ")}\r\n" +
+      s"[190 In this room:${InhabitantNicks.mkString(", ")}]"
 
     sender ! Write(xs)
   }

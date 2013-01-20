@@ -16,7 +16,7 @@ case object SendMeALeaveMessage
 
 case class Enter(nick: String)
 case class Leave(nick: String)
-case class LeaveBy(nick: String, direction: String)
+case class RoomCommand(nick: String, direction: String)
 case class LeaveOk(exit: (String, String))
 case object LeaveFail
 
@@ -38,6 +38,8 @@ case object Died
 
 case object Description
 case class SetDescription(description: String)
+
+case class SetRace(race: String)
 
 case object Exits
 case class ExitMessage(exits: Set[(String, String)])
