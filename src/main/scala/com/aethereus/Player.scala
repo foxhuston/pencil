@@ -60,6 +60,7 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
   val put = ""
   val tell = ""
   val alias = ""
+  val stop = "^stop$".r
   val unequip = "(lower|unequip|remove)(.*)".r
   val who = "^who$".r
   val open = ""
@@ -78,6 +79,12 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
   def parseBehavior(input: String) =
     (parseBehaviorA orElse parseDebugBehavior orElse parseTravel)(input)
 
+  def startAttacking(what: String) = {
+    lastAttacked = (what, Strength)
+    val s = speed + getSpeedBonuses()
+    combatTimer = context.system.scheduler.schedule(0 second, (10 / s) second, self, "combatTick")
+  }
+
   val parseBehaviorA: PartialFunction[String, Unit] = {
     case say(_, input) =>
       room ! Say(nick, input)
@@ -92,11 +99,12 @@ class Player(server: ServerHandle, var room: ActorRef) extends Actor with Neo4jW
       } else {
         room ! EnterMessage
       }
+    case stop() =>
+      combatTimer.cancel();
     case whoAmI(_) =>
       self ! Write("You are " + nick)
     case testAttack(what) =>
-      lastAttacked = (what, Strength)
-      combatTimer = context.system.scheduler.schedule(0 second, (10 / speed) second, self, "combatTick")
+      startAttacking(what)
     case equip(_, what) =>
       equipItem(what)
     case matchInventory(_) =>
